@@ -25,12 +25,12 @@
 </select>
 
 <div>
-  <button class="tab-btn active" id="tab1">質問①（Yes/No）</button>
-  <button class="tab-btn" id="tab2">質問②（Wh-質問）</button>
+  <button class="tab-btn active" id="tab1">質問①</button>
+  <button class="tab-btn" id="tab2">質問②</button>
 </div>
 
 <div id="questionArea">
-  <h2 id="questionTypeLabel">質問①（Yes/No質問）</h2>
+  <h2 id="questionTypeLabel">質問①</h2>
   <p id="questionText"></p>
   <button id="toggleTranslationBtn">和訳を表示</button>
   <div id="translation" class="translation hidden"></div>
@@ -120,11 +120,11 @@
     if (currentType === "q1") {
       tab1.classList.add("active");
       tab2.classList.remove("active");
-      questionTypeLabel.textContent = "質問①（Yes/No質問）";
+      questionTypeLabel.textContent = "質問①";
     } else {
       tab1.classList.remove("active");
       tab2.classList.add("active");
-      questionTypeLabel.textContent = "質問②（Wh-質問）";
+      questionTypeLabel.textContent = "質問②";
     }
   }
 
