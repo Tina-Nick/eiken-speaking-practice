@@ -2,163 +2,287 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>英検スピーキング練習ツール</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>英検3級スピーキング練習</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f8f8f8; }
-    .controls { margin-bottom: 1em; }
-    button { margin-right: 10px; margin-bottom: 10px; padding: 8px 12px; border: none; background-color: #4caf50; color: white; border-radius: 5px; cursor: pointer; }
-    button:hover { background-color: #45a049; }
-    .question-box { background: white; padding: 1em; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 1em; }
-    .answer { margin-top: 10px; background: #eef; padding: 10px; border-radius: 5px; }
-    .hidden { display: none; }
+    /* 省略: 既存のスタイルはそのまま */
+    body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
+    h1 { color: #333; }
+    button { margin: 5px; padding: 10px 15px; border: none; border-radius: 5px; background: #eee; cursor: pointer; }
+    button:hover { background: #ddd; }
+    .selected { background-color: #007bff; color: white; }
+    .section { margin-top: 20px; padding: 15px; background: #fff; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .answer { margin-top: 10px; display: none; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <h1>英検スピーキング練習ツール（3級〜準2級）</h1>
-  <div class="controls">
-    <label>級: 
-      <select id="grade">
-        <option value="grade3">3級</option>
-        <option value="gradePre2">準2級</option>
-      </select>
-    </label>
-    <label>質問タイプ:
-      <select id="type">
-        <option value="q1">質問①</option>
-        <option value="q2">質問②</option>
-      </select>
-    </label>
-    <button id="nextBtn">次の質問</button>
+
+  <h1>英検3級スピーキング練習</h1>
+
+  <div>
+    <button onclick="selectQuestionType('yesno')" id="btn-yesno">質問①</button>
+    <button onclick="selectQuestionType('wh')" id="btn-wh">質問②</button>
+    <button onclick="showQuestion()">次の質問</button>
   </div>
 
-  <div class="question-box">
-    <h2 id="question"></h2>
-    <button id="toggleTranslationBtn">和訳を表示</button>
-    <div id="translation" class="answer hidden"></div>
-    <button id="toggleYesAnswerBtn">Yesの模範解答を表示</button>
-    <div id="yesAnswer" class="answer hidden"></div>
-    <button id="toggleNoAnswerBtn">Noの模範解答を表示</button>
-    <div id="noAnswer" class="answer hidden"></div>
+  <div class="section">
+    <div id="question">ここに質問が表示されます。</div>
+    <button onclick="toggleQuestionTranslation()">和訳を表示</button>
+    <div id="question-translation" style="margin-top:10px; display:none; color: #555;"></div>
   </div>
 
-  <script>
-    const data = {
-      grade3: {
-        q1: [
-          {
-            question: "Do you like music?",
-            translation: "あなたは音楽が好きですか？",
-            answer: "Yes, I like music because it makes me feel happy and relaxed.",
-            answer_no: "No, I don’t like music very much because I prefer quiet places."
-          },
-          {
-            question: "Do you play any sports?",
-            translation: "あなたは何かスポーツをしますか？",
-            answer: "Yes, I play soccer every weekend with my friends.",
-            answer_no: "No, I don’t play sports because I’m not good at them."
-          }
-        ],
-        q2: [
-          {
-            question: "What season do you like the best?",
-            translation: "あなたが一番好きな季節は何ですか？",
-            answer: "I like spring the best because the weather is nice and flowers bloom."
-          },
-          {
-            question: "What do you usually do after school?",
-            translation: "あなたはふだん放課後に何をしますか？",
-            answer: "I usually do my homework and then watch TV."
-          }
-        ]
-      },
-      gradePre2: {
-        q1: [],
-        q2: []
-      }
-    };
+  <div class="section" id="yesno-section">
+    <h3>【Yesの模範解答】</h3>
+    <button onclick="toggleYesAnswer()">模範解答を表示</button>
+    <div id="yes-answer" class="answer"></div>
+  </div>
 
-    let currentGrade = "grade3";
-    let currentType = "q1";
-    let currentIndex = 0;
-    let translationShown = false;
-    let yesAnswerShown = false;
-    let noAnswerShown = false;
+  <div class="section" id="no-section">
+    <h3>【Noの模範解答】</h3>
+    <button onclick="toggleNoAnswer()">模範解答を表示</button>
+    <div id="no-answer" class="answer"></div>
+  </div>
 
-    const gradeSelect = document.getElementById("grade");
-    const typeSelect = document.getElementById("type");
-    const nextBtn = document.getElementById("nextBtn");
-    const questionText = document.getElementById("question");
-    const translationDiv = document.getElementById("translation");
-    const toggleTranslationBtn = document.getElementById("toggleTranslationBtn");
-    const toggleYesAnswerBtn = document.getElementById("toggleYesAnswerBtn");
-    const toggleNoAnswerBtn = document.getElementById("toggleNoAnswerBtn");
-    const yesAnswerDiv = document.getElementById("yesAnswer");
-    const noAnswerDiv = document.getElementById("noAnswer");
+  <div class="section" id="wh-section" style="display:none;">
+    <h3>【模範解答】</h3>
+    <button onclick="toggleWhAnswer()">模範解答を表示</button>
+    <div id="wh-answer" class="answer"></div>
+  </div>
 
-    function updateQuestion() {
-      const list = data[currentGrade][currentType];
-      if (!list || list.length === 0) {
-        questionText.textContent = "このタイプの質問はまだ登録されていません。";
-        translationDiv.classList.add("hidden");
-        yesAnswerDiv.classList.add("hidden");
-        noAnswerDiv.classList.add("hidden");
-        return;
-      }
-      const q = list[currentIndex];
-      questionText.textContent = q.question;
-      translationDiv.textContent = q.translation;
-      yesAnswerDiv.textContent = q.answer;
-      noAnswerDiv.textContent = q.answer_no || "(Noの模範解答はありません)";
-      translationShown = false;
-      yesAnswerShown = false;
-      noAnswerShown = false;
-      translationDiv.classList.add("hidden");
-      yesAnswerDiv.classList.add("hidden");
-      noAnswerDiv.classList.add("hidden");
-      toggleTranslationBtn.textContent = "和訳を表示";
-      toggleYesAnswerBtn.textContent = "Yesの模範解答を表示";
-      toggleNoAnswerBtn.textContent = "Noの模範解答を表示";
+<script>
+const yesnoQuestions = [
+  {
+    question: "Do you like animals?",
+    translation: "あなたは動物が好きですか？",
+    yes: "Yes. I like animals because they are cute. I also enjoy playing with dogs and cats.",
+    yesTranslation: "はい。動物が好きです。かわいいし、犬や猫と遊ぶのが楽しいです。",
+    no: "No. I don't like animals because I get scared. Also, I don’t have any pets at home.",
+    noTranslation: "いいえ。動物が怖いので好きではありません。家にもペットはいません。"
+  },
+  {
+    question: "Do you often eat vegetables?",
+    translation: "あなたはよく野菜を食べますか？",
+    yes: "Yes. I eat vegetables every day because they are good for my health. My favorite is carrots.",
+    yesTranslation: "はい。野菜は体にいいので毎日食べます。にんじんが好きです。",
+    no: "No. I don't eat vegetables often. I prefer meat or rice.",
+    noTranslation: "いいえ。野菜はあまり食べません。肉やごはんの方が好きです。"
+  },
+  {
+    question: "Do you like to read books?",
+    translation: "あなたは本を読むのが好きですか？",
+    yes: "Yes. I like reading books because I can learn many things. I often read stories about animals.",
+    yesTranslation: "はい。本を読むのが好きです。いろいろなことが学べます。よく動物の話を読みます。",
+    no: "No. I don’t like reading books because I find it boring. I prefer watching videos.",
+    noTranslation: "いいえ。本を読むのは好きではありません。退屈だと思います。ビデオを見るほうが好きです。"
+  },
+  {
+    question: "Do you play sports after school?",
+    translation: "あなたは放課後にスポーツをしますか？",
+    yes: "Yes. I play soccer with my friends after school. It is fun and good exercise.",
+    yesTranslation: "はい。放課後に友だちとサッカーをします。楽しいし、いい運動です。",
+    no: "No. I don’t play sports because I am busy with homework and other activities.",
+    noTranslation: "いいえ。宿題やほかの活動で忙しいのでスポーツはしません。"
+  },
+  {
+    question: "Do you like to listen to music?",
+    translation: "あなたは音楽を聴くのが好きですか？",
+    yes: "Yes. I like listening to music. It helps me relax after school.",
+    yesTranslation: "はい。音楽を聴くのが好きです。放課後にリラックスできます。",
+    no: "No. I don’t listen to music much because I like quiet places.",
+    noTranslation: "いいえ。あまり音楽は聴きません。静かな場所が好きです。"
+  },
+  {
+    question: "Do you often go to the park?",
+    translation: "あなたはよく公園に行きますか？",
+    yes: "Yes. I go to the park on weekends. I like to play and see nature there.",
+    yesTranslation: "はい。週末によく公園に行きます。遊んだり自然を見たりします。",
+    no: "No. I don’t go to the park often because it is far from my home.",
+    noTranslation: "いいえ。家から遠いのであまり公園に行きません。"
+  },
+  {
+    question: "Do you like to watch TV?",
+    translation: "あなたはテレビを見るのが好きですか？",
+    yes: "Yes. I like watching cartoons and news on TV.",
+    yesTranslation: "はい。テレビでアニメやニュースを見るのが好きです。",
+    no: "No. I don’t watch TV much because I prefer reading books.",
+    noTranslation: "いいえ。本を読むほうが好きなのであまりテレビを見ません。"
+  },
+  {
+    question: "Do you like to eat sushi?",
+    translation: "あなたは寿司を食べるのが好きですか？",
+    yes: "Yes. I like sushi because it tastes good and is healthy.",
+    yesTranslation: "はい。寿司はおいしくて健康にいいので好きです。",
+    no: "No. I don’t like sushi because I don’t like raw fish.",
+    noTranslation: "いいえ。生の魚が好きではないので寿司は好きではありません。"
+  },
+  {
+    question: "Do you have a best friend?",
+    translation: "あなたには親友がいますか？",
+    yes: "Yes. I have a best friend at school. We play and study together.",
+    yesTranslation: "はい。学校に親友がいます。一緒に遊んだり勉強したりします。",
+    no: "No. I don’t have a best friend yet, but I want to make one.",
+    noTranslation: "いいえ。まだ親友はいませんが、作りたいです。"
+  },
+  {
+    question: "Do you like to travel?",
+    translation: "あなたは旅行が好きですか？",
+    yes: "Yes. I like traveling because I can see new places and meet new people.",
+    yesTranslation: "はい。旅行が好きです。新しい場所を見たり、新しい人に会えたりします。",
+    no: "No. I don’t like traveling because I prefer staying at home.",
+    noTranslation: "いいえ。家にいる方が好きなので旅行はあまり好きではありません。"
+  }
+];
+
+
+const whQuestions = [
+  {
+    question: "What do you like to do on weekends?",
+    translation: "週末は何をするのが好きですか？",
+    answer: "I like to watch movies on weekends. I also play video games with my friends.",
+    answerTranslation: "週末は映画を見るのが好きです。友だちとゲームをすることもあります。"
+  },
+  {
+    question: "What is your favorite season?",
+    translation: "あなたの好きな季節は何ですか？",
+    answer: "My favorite season is spring. The weather is nice and I enjoy seeing flowers.",
+    answerTranslation: "私の好きな季節は春です。天気がよくて、花を見るのが楽しいです。"
+  },
+  {
+    question: "Where do you want to go on your next vacation?",
+    translation: "次の休みにどこへ行きたいですか？",
+    answer: "I want to go to Okinawa. The sea is beautiful and I want to swim there.",
+    answerTranslation: "沖縄に行きたいです。海がきれいで泳ぎたいです。"
+  },
+  {
+    question: "Who is your favorite teacher?",
+    translation: "あなたの好きな先生は誰ですか？",
+    answer: "My favorite teacher is my English teacher. She is kind and helps me a lot.",
+    answerTranslation: "好きな先生は英語の先生です。やさしくてよく助けてくれます。"
+  },
+  {
+    question: "When is your birthday?",
+    translation: "あなたの誕生日はいつですか？",
+    answer: "My birthday is in May. I usually have a party with my family.",
+    answerTranslation: "誕生日は5月です。たいてい家族とパーティーをします。"
+  },
+  {
+    question: "How do you go to school?",
+    translation: "学校へはどうやって行きますか？",
+    answer: "I usually go to school by bus. It takes about 30 minutes.",
+    answerTranslation: "ふだんはバスで学校に行きます。約30分かかります。"
+  },
+  {
+    question: "What do you want to be in the future?",
+    translation: "将来何になりたいですか？",
+    answer: "I want to be a doctor because I want to help sick people.",
+    answerTranslation: "将来は医者になりたいです。病気の人を助けたいからです。"
+  },
+  {
+    question: "What do you usually eat for lunch?",
+    translation: "お昼ごはんにたいてい何を食べますか？",
+    answer: "I usually eat rice and fish for lunch. Sometimes I eat sandwiches.",
+    answerTranslation: "お昼ごはんにはたいていごはんと魚を食べます。時々サンドイッチを食べます。"
+  },
+  {
+    question: "Why do you like your favorite sport?",
+    translation: "なぜ好きなスポーツが好きですか？",
+    answer: "I like soccer because it is fun and I can play with my friends.",
+    answerTranslation: "サッカーが好きです。楽しいし、友だちと一緒にできるからです。"
+  },
+  {
+    question: "What do you do after school?",
+    translation: "放課後は何をしますか？",
+    answer: "After school, I do my homework and sometimes play outside.",
+    answerTranslation: "放課後は宿題をして、時々外で遊びます。"
+  }
+];
+
+
+let currentQuestionType = 'yesno';
+let currentQ = null;
+
+function selectQuestionType(type) {
+  currentQuestionType = type;
+  document.getElementById("btn-yesno").classList.remove("selected");
+  document.getElementById("btn-wh").classList.remove("selected");
+  if(type === 'yesno') {
+    document.getElementById("btn-yesno").classList.add("selected");
+    document.getElementById("yesno-section").style.display = "block";
+    document.getElementById("no-section").style.display = "block";
+    document.getElementById("wh-section").style.display = "none";
+  } else {
+    document.getElementById("btn-wh").classList.add("selected");
+    document.getElementById("yesno-section").style.display = "none";
+    document.getElementById("no-section").style.display = "none";
+    document.getElementById("wh-section").style.display = "block";
+  }
+  clearAll();
+  showQuestion();
+}
+
+function showQuestion() {
+  let qList = currentQuestionType === 'yesno' ? yesnoQuestions : whQuestions;
+  currentQ = qList[Math.floor(Math.random() * qList.length)];
+  document.getElementById('question').textContent = currentQ.question;
+  document.getElementById('question-translation').style.display = 'none';
+  document.getElementById('question-translation').textContent = currentQ.translation || '';
+  clearAll();
+}
+
+function clearAll() {
+  ['yes-answer','no-answer','wh-answer'].forEach(id=>{
+    let el = document.getElementById(id);
+    el.style.display = 'none';
+    el.textContent = '';
+  });
+  document.getElementById('question-translation').style.display = 'none';
+}
+
+function toggleQuestionTranslation() {
+  const el = document.getElementById('question-translation');
+  if(el.style.display === 'none') {
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function toggleYesAnswer() {
+  toggleAnswer('yes');
+}
+function toggleNoAnswer() {
+  toggleAnswer('no');
+}
+function toggleWhAnswer() {
+  let el = document.getElementById('wh-answer');
+  if(el.style.display === 'none') {
+    el.style.display = 'block';
+    el.textContent = `${currentQ.answer}\n\n和訳：${currentQ.answerTranslation}`;
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+
+function toggleAnswer(type) {
+  let el = document.getElementById(type + '-answer');
+  if(el.style.display === 'none') {
+    if(type === 'yes') {
+      el.textContent = `${currentQ.yes}\n\n和訳：${currentQ.yesTranslation}`;
+    } else if(type === 'no') {
+      el.textContent = `${currentQ.no}\n\n和訳：${currentQ.noTranslation}`;
     }
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
 
-    gradeSelect.addEventListener("change", () => {
-      currentGrade = gradeSelect.value;
-      currentIndex = 0;
-      updateQuestion();
-    });
+// ページ初期化
+selectQuestionType('yesno');
 
-    typeSelect.addEventListener("change", () => {
-      currentType = typeSelect.value;
-      currentIndex = 0;
-      updateQuestion();
-    });
+</script>
 
-    nextBtn.addEventListener("click", () => {
-      const list = data[currentGrade][currentType];
-      if (!list || list.length === 0) return;
-      currentIndex = (currentIndex + 1) % list.length;
-      updateQuestion();
-    });
-
-    toggleTranslationBtn.addEventListener("click", () => {
-      translationShown = !translationShown;
-      translationDiv.classList.toggle("hidden");
-      toggleTranslationBtn.textContent = translationShown ? "和訳を隠す" : "和訳を表示";
-    });
-
-    toggleYesAnswerBtn.addEventListener("click", () => {
-      yesAnswerShown = !yesAnswerShown;
-      yesAnswerDiv.classList.toggle("hidden");
-      toggleYesAnswerBtn.textContent = yesAnswerShown ? "Yesの模範解答を隠す" : "Yesの模範解答を表示";
-    });
-
-    toggleNoAnswerBtn.addEventListener("click", () => {
-      noAnswerShown = !noAnswerShown;
-      noAnswerDiv.classList.toggle("hidden");
-      toggleNoAnswerBtn.textContent = noAnswerShown ? "Noの模範解答を隠す" : "Noの模範解答を表示";
-    });
-
-    updateQuestion();
-  </script>
 </body>
 </html>
