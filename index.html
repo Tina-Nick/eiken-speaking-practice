@@ -1,0 +1,201 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>英検スピーキング練習ツール</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2em auto; padding: 0 1em; }
+    button { margin: 0.5em 0.5em 1em 0; }
+    .hidden { display: none; }
+    .answer, .translation { background: #f0f0f0; padding: 1em; margin-top: 0.5em; border-radius: 5px; }
+    .tab-btn { padding: 0.5em 1em; margin-right: 0.5em; border: none; border-radius: 5px; background: #ddd; cursor: pointer; }
+    .tab-btn.active { background: #4CAF50; color: white; }
+  </style>
+</head>
+<body>
+
+<h1>英検スピーキング練習ツール</h1>
+
+<label for="gradeSelect">級を選択：</label>
+<select id="gradeSelect">
+  <option value="grade3">英検3級</option>
+  <option value="pre2">英検準2級</option>
+  <option value="grade2">英検2級</option>
+</select>
+
+<div>
+  <button class="tab-btn active" id="tab1">質問①（Yes/No）</button>
+  <button class="tab-btn" id="tab2">質問②（Wh-質問）</button>
+</div>
+
+<div id="questionArea">
+  <h2 id="questionTypeLabel">質問①（Yes/No質問）</h2>
+  <p id="questionText"></p>
+  <button id="toggleTranslationBtn">和訳を表示</button>
+  <div id="translation" class="translation hidden"></div>
+
+  <button id="toggleAnswerBtn">模範解答を表示</button>
+  <div id="answer" class="answer hidden"></div>
+
+  <br />
+  <button id="nextBtn">次の問題</button>
+</div>
+
+<script>
+  const data = {
+    grade3: {
+      q1: [
+        {
+          question: "Do you like animals?",
+          translation: "動物は好きですか？",
+          answer: "Yes, I like animals because they are cute and fun to play with."
+        },
+        {
+          question: "Do you eat breakfast every day?",
+          translation: "毎日朝ごはんを食べますか？",
+          answer: "Yes, because it gives me energy to study and play."
+        }
+      ],
+      q2: [
+        {
+          question: "What do you do on weekends?",
+          translation: "週末は何をしますか？",
+          answer: "I usually play soccer with my friends and do my homework."
+        }
+      ]
+    },
+    pre2: {
+      q1: [
+        {
+          question: "Do you think reading books is important?",
+          translation: "本を読むことは大切だと思いますか？",
+          answer: "Yes, because reading helps us learn many things and improve our thinking."
+        }
+      ],
+      q2: [
+        {
+          question: "Some people say watching TV is a waste of time. What do you think?",
+          translation: "テレビを見るのは時間の無駄だと言う人がいます。どう思いますか？",
+          answer: "I don’t think so. Some TV shows are educational and help us learn new things."
+        }
+      ]
+    },
+    grade2: {
+      q1: [
+        {
+          question: "Do you think students should have more holidays?",
+          translation: "学生はもっと休みがあるべきだと思いますか？",
+          answer: "Yes, because rest helps students refresh and study better."
+        }
+      ],
+      q2: [
+        {
+          question: "What are the advantages of using public transportation?",
+          translation: "公共交通機関を使う利点は何ですか？",
+          answer: "It’s cheap, convenient, and better for the environment than cars."
+        }
+      ]
+    }
+  };
+
+  const gradeSelect = document.getElementById("gradeSelect");
+  const tab1 = document.getElementById("tab1");
+  const tab2 = document.getElementById("tab2");
+  const questionTypeLabel = document.getElementById("questionTypeLabel");
+  const questionText = document.getElementById("questionText");
+  const translationDiv = document.getElementById("translation");
+  const answerDiv = document.getElementById("answer");
+  const toggleTranslationBtn = document.getElementById("toggleTranslationBtn");
+  const toggleAnswerBtn = document.getElementById("toggleAnswerBtn");
+  const nextBtn = document.getElementById("nextBtn");
+
+  let currentGrade = "grade3";
+  let currentType = "q1";
+  let currentIndex = 0;
+  let translationShown = false;
+  let answerShown = false;
+
+  function updateTabs() {
+    if (currentType === "q1") {
+      tab1.classList.add("active");
+      tab2.classList.remove("active");
+      questionTypeLabel.textContent = "質問①（Yes/No質問）";
+    } else {
+      tab1.classList.remove("active");
+      tab2.classList.add("active");
+      questionTypeLabel.textContent = "質問②（Wh-質問）";
+    }
+  }
+
+  function updateQuestion() {
+    const list = data[currentGrade][currentType];
+    if (!list || list.length === 0) {
+      questionText.textContent = "このタイプの質問はまだ登録されていません。";
+      translationDiv.classList.add("hidden");
+      answerDiv.classList.add("hidden");
+      return;
+    }
+
+    translationShown = false;
+    answerShown = false;
+    translationDiv.classList.add("hidden");
+    answerDiv.classList.add("hidden");
+    toggleTranslationBtn.textContent = "和訳を表示";
+    toggleAnswerBtn.textContent = "模範解答を表示";
+
+    const q = list[currentIndex];
+    questionText.textContent = q.question;
+    translationDiv.textContent = q.translation;
+    answerDiv.textContent = q.answer;
+  }
+
+  function nextQuestion() {
+    const list = data[currentGrade][currentType];
+    currentIndex = (currentIndex + 1) % list.length;
+    updateQuestion();
+  }
+
+  gradeSelect.addEventListener("change", () => {
+    currentGrade = gradeSelect.value;
+    currentIndex = 0;
+    updateQuestion();
+  });
+
+  tab1.addEventListener("click", () => {
+    currentType = "q1";
+    currentIndex = 0;
+    updateTabs();
+    updateQuestion();
+  });
+
+  tab2.addEventListener("click", () => {
+    currentType = "q2";
+    currentIndex = 0;
+    updateTabs();
+    updateQuestion();
+  });
+
+  toggleTranslationBtn.addEventListener("click", () => {
+    translationShown = !translationShown;
+    translationDiv.classList.toggle("hidden");
+    toggleTranslationBtn.textContent = translationShown ? "和訳を隠す" : "和訳を表示";
+  });
+
+  toggleAnswerBtn.addEventListener("click", () => {
+    answerShown = !answerShown;
+    answerDiv.classList.toggle("hidden");
+    toggleAnswerBtn.textContent = answerShown ? "模範解答を隠す" : "模範解答を表示";
+  });
+
+  nextBtn.addEventListener("click", () => {
+    nextQuestion();
+  });
+
+  // 初期表示
+  updateTabs();
+  updateQuestion();
+</script>
+
+</body>
+</html>
